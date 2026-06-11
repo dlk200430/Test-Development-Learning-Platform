@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D登录页面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    }
+
+    /* Three.js容器 */
+    #scene-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    /* 渐变遮罩 */
+    .gradient-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, transparent 0%, rgba(15, 12, 41, 0.6) 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* 页面容器 */
+    .page-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      animation: fadeIn 1s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 登录卡片 */
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -50%;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        transparent, 
+        rgba(168, 85, 247, 0.1), 
+        rgba(0, 212, 255, 0.1), 
+        transparent);
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-50%); }
+      100% { transform: translateX(50%); }
+    }
+
+    /* 欢迎文字 */
+    .welcome-section {
+      text-align: center;
+      margin-bottom: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-section h1 {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .welcome-section p {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+    }
+
+    /* 表单 */
+    .login-form {
+      position: relative;
+      z-index: 1;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    /* 输入框 */
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .form-input:focus {
+      border-color: #00d4ff;
+      box-shadow: 
+        0 0 0 2px rgba(0, 212, 255, 0.2),
+        0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .form-input:-webkit-autofill {
+      -webkit-box-shadow: 0 0 0 100px rgba(15, 12, 41, 0.9) inset;
+      -webkit-text-fill-color: #ffffff;
+    }
+
+    /* 密码框 */
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 18px;
+      transition: color 0.3s ease;
+    }
+
+    .password-toggle:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* 登录按钮 */
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      border: none;
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      margin-top: 8px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(168, 85, 247, 0.4);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    /* 按钮脉冲光效 */
+    .login-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        width: 0;
+        height: 0;
+        opacity: 1;
+      }
+      50% {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+      }
+    }
+
+    /* 注册链接 */
+    .register-link {
+      text-align: center;
+      margin-top: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .register-link span {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 13px;
+    }
+
+    .register-link a {
+      color: #00d4ff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .register-link a:hover {
+      color: #a855f7;
+    }
+
+    /* 响应式 */
+    @media (max-width: 480px) {
+      .login-card {
+        margin: 0 20px;
+        padding: 30px 24px;
+      }
+
+      .welcome-section h1 {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Three.js场景容器 -->
+  <div id="scene-container"></div>
+  
+  <!-- 渐变遮罩 -->
+  <div class="gradient-overlay"></div>
+  
+  <!-- 页面内容 -->
+  <div class="page-container">
+    <div class="login-card">
+      <div class="welcome-section">
+        <h1>欢迎回来</h1>
+        <p>请登录您的账户</p>
+      </div>
+      
+      <form class="login-form" id="loginForm">
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <input 
+            type="text" 
+            id="username" 
+            class="form-input" 
+            placeholder="请输入用户名"
+            required
+          >
+        </div>
+        
+        <div class="form-group">
+          <label for="password">密码</label>
+          <div class="password-wrapper">
+            <input 
+              type="password" 
+              id="password" 
+              class="form-input" 
+              placeholder="请输入密码"
+              required
+            >
+            <span class="password-toggle" id="passwordToggle">👁️</span>
+          </div>
+        </div>
+        
+        <button type="submit" class="login-btn">登录</button>
+      </form>
+      
+      <div class="register-link">
+        <span>还没有账户？</span>
+        <a href="#" id="registerLink">立即注册</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    // Three.js场景初始化
+    function initScene() {
+      const container = document.getElementById('scene-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // 创建场景
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x0f0c29, 0.0015);
+
+      // 创建相机
+      const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+      camera.position.z = 5;
+
+      // 创建渲染器
+      const renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true 
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      // 创建几何体
+      const geometries = [];
+      const materials = [];
+
+      // 外圆环
+      const outerRingGeometry = new THREE.RingGeometry(2.5, 2.7, 64);
+      const outerRingMaterial = new THREE.MeshBasicMaterial({
+        color: 0xa855f7,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide
+      });
+      const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
+      outerRing.rotation.x = Math.PI / 2;
+      scene.add(outerRing);
+      geometries.push(outerRing);
+
+      // 中间圆环
+      const middleRingGeometry = new THREE.RingGeometry(1.8, 2.0, 64);
+      const middleRingMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00d4ff,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.DoubleSide
+      });
+      const middleRing = new THREE.Mesh(middleRingGeometry, middleRingMaterial);
+      middleRing.rotation.x = Math.PI / 3;
+      middleRing.rotation.z = Math.PI / 4;
+      scene.add(middleRing);
+      geometries.push(middleRing);
+
+      // 内圆环
+      const innerRingGeometry = new THREE.RingGeometry(1.0, 1.2, 64);
+      const innerRingMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+      });
+      const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
+      innerRing.rotation.x = Math.PI / 4;
+      scene.add(innerRing);
+      geometries.push(innerRing);
+
+      // 球体节点
+      const sphereGeometry = new THREE.SphereGeometry(0.08, 32, 32);
+      for (let i = 0; i < 12; i++) {
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+          color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6),
+          transparent: true,
+          opacity: 0.8
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        const angle = (i / 12) * Math.PI * 2;
+        sphere.position.set(
+          Math.cos(angle) * 2,
+          Math.sin(angle * 2) * 0.5,
+          Math.sin(angle) * 0.8
+        );
+        scene.add(sphere);
+        geometries.push(sphere);
+      }
+
+      // 旋转动画
+      let time = 0;
+      function animate() {
+        requestAnimationFrame(animate);
+        time += 0.005;
+
+        // 旋转圆环
+        outerRing.rotation.y += 0.002;
+        middleRing.rotation.y -= 0.003;
+        middleRing.rotation.x = Math.PI / 3 + Math.sin(time) * 0.1;
+        innerRing.rotation.y += 0.005;
+        innerRing.rotation.x = Math.PI / 4 + Math.cos(time * 0.5) * 0.15;
+
+        // 球体运动
+        scene.children.forEach((child, index) => {
+          if (child.geometry && child.geometry.type === 'SphereGeometry') {
+            child.position.y += Math.sin(time + index) * 0.002;
+            child.position.x += Math.cos(time * 0.5 + index) * 0.001;
+          }
+        });
+
+        // 相机轻微摆动
+        camera.position.y = Math.sin(time * 0.3) * 0.1;
+        camera.lookAt(0, 0, 0);
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // 响应窗口大小变化
+      window.addEventListener('resize', () => {
+        const newWidth = container.clientWidth;
+        const newHeight = container.clientHeight;
+        camera.aspect = newWidth / newHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(newWidth, newHeight);
+      });
+    }
+
+    // 表单交互
+    function initForm() {
+      const form = document.getElementById('loginForm');
+      const passwordToggle = document.getElementById('passwordToggle');
+      const passwordInput = document.getElementById('password');
+
+      // 密码显示/隐藏切换
+      passwordToggle.addEventListener('click', () => {
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        passwordToggle.textContent = type === 'password' ? '👁️' : '🙈';
+      });
+
+      // 登录表单提交
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = passwordInput.value;
+        
+        console.log('登录信息:', { username, password });
+        alert(`登录成功！欢迎, ${username}`);
+      });
+
+      // 注册链接
+      document.getElementById('registerLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('注册功能即将开放');
+      });
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      initScene();
+      initForm();
+    });
+  </script>
+</body>
+</html>
